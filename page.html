@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" name="viewport" content="width=device-width">
+<script src="https://raw.githubusercontent.com/peterolson/BigInteger.js/master/BigInteger.min.js"></script>
+<script src="https://raw.githubusercontent.com/indutny/elliptic/master/dist/elliptic.min.js"></script>
+<script src="https://raw.githubusercontent.com/ricmoo/aes-js/master/index.js"></script>
+<script>
+
+function encode_utf8 (s) {return unescape(encodeURIComponent(s))} // converts str to utf-8 escapes and ascii
+function decode_utf8 (s) {return decodeURIComponent(escape(s))} // converts utf-8 escapes and ascii to str
+
+/*
+Range of CJKV
+Codepoints   count  total       | char    Bits info   sets    B  Tumblr475  Twitter140
+ 340X- 4DAX   6576   6576  ExtA |    1  16.00000000  65536    2          0           0
+ 4E0X- 9FCX  20944  27520  CJKV |   28  456.2513910  79890   57         27           0
+2000X-2A6CX  42704  70244  ExtB |   55  896.2080895  80178  112         35          30
+2A70X-2B72X   4144  74368  ExtC |   82  1336.164788  80277  167         65          58
+2B74X-2B80X    208  74576  ExtD |  109  1776.121487  80326  222         39          31
+2B82X-2CE9X   5760  80336  ExtE |  136  2216.078185  80356  277         67           4
+*/
+
+function int2char (integer) { // convert +ve int >= 0 to chi char
+	console.assert(typeof integer === "number", "Input not integer");
+	if (0 <= integer && integer < 6576) {integer -= 0; integer += 0x3400} // ExtA
+	else if (integer < 27520) {integer -= 6576; integer += 0x4E00} // CJKV
+	else if (integer < 70224) {integer -= 27520; integer += 0x20000} // ExtB
+	else if (integer < 74368) {integer -= 70224; integer += 0x2A700} // ExtC
+	else if (integer < 74576) {integer -= 74368; integer += 0x2B740} // ExtD
+	else if (integer < 80336) {integer -= 74576; integer += 0x2BB20} // ExtE
+	else {console.error("Integer out of bounds")}
+	return String.fromCodePoint(integer)}
+
+function char2int (character) { // convert chi char to +ve int >= 0
+	console.assert(typeof character === "string", "Input not string");
+	if (character.length === 1) {integer = character.charCodeAt(0);} // CJKV and ExtA
+	else if (character.length === 2) { // ExtB, ExtC, ExtD and ExtE
+		H = character.charCodeAt(0); L = character.charCodeAt(1);
+		integer = (H - 0xD800) * 0x400 + L - 0xDC00 + 0x10000}
+	else {console.error("Error: input not character")}
+	if (0x3400 <= integer && integer < 0x4DB0) {integer -= 0x3400; integer += 0} // ExtA
+	else if (0x4E00 <= integer && integer < 0x9FD0) {integer -= 0x4E00; integer += 6576} // CJKV
+	else if (0x20000 <= integer && integer < 0x2A6D0) {integer -= 0x20000; integer += 27520} // EXtB
+	else if (0x2A700 <= integer && integer < 0x2B730) {integer -= 0x2A700; integer += 70224} // ExtC
+	else if (0x2B740 <= integer && integer < 0x2B810) {integer -= 0x2B740; integer += 74368} // ExtD
+	else if (0x2B820 <= integer && integer < 0x2CEA0) {integer -= 0x2BB20; integer += 74576} // ExtE
+	else {console.error("Character out of range")}
+	return integer}
+
+function intCheck (integer) {
+	console.assert(integer.lesser(bigInt(256).pow(112)), "Integer out of range");
+	console.assert(integer.greaterOrEquals(0), "Integer out of range")}
+
+function mapJoin (array, func) {return array.map(func).join("")}
+
+function any2int (any, type, len, func, base) {
+	console.assert(typeof any[0] === "string", "Input not " + type);
+	console.assert(any.length <= len, "Input too long");
+	array = any.map(func); integer = bigInt(0); // create output var
+	for (i = array.length - 1; i >= 0; i -= 1) { // loop through each char right to left
+		integer = integer.multiply(base).add(array[i])} // multiply and add
+	intCheck(integer); return integer}
+
+function strip2int (strip) {return any2int([...strip], "string", 55, char2int, 80178)}
+function code1 (s) {return s.charCodeAt(0)} // convert char to code
+function byte2int (bytes) {return any2int(bytes.split(""), "bytes", 112, code1, 256)}
+
+function int2any (integer, count, base, func) {
+	console.assert(bigInt.isInstance(integer) === true, "Input not bigInt");
+	intCheck(integer); array = []; // create output var
+	for (i = 0; i < count; i += 1) {x = integer.divmod(base); // divmod bigInt
+		integer = x.quotient; array.push(x.remainder.toJSNumber());} // push remainder
+	return mapJoin(array, func)}
+
+function int2strip (integer) {return int2any(integer, 55, 80178, int2char)}
+function code2 (b) {return String.fromCodePoint(b)} // convert code to char
+function int2byte (integer) {return int2any(integer, 112, 256, code2)}
+
+function f(array1, integer, func, char) {
+	x = []; while (array1.length > 0) {
+		x.push(array1.splice(0, integer).join(""))}
+	return mapJoin(x, func).replace(RegExp(char + "+$"), "")}
+
+function e (bytes) {return int2strip(byte2int(bytes))} // convert bytes to strip
+function en (bytes) {return f(bytes.split(""), 112, e, "\u3400")} // convert bytes to chi
+function encode () {
+	x = document.getElementById("en_input").value // Message to be encoded
+	y = document.getElementById("username").value // Username field
+	z = document.getElementsByName("social_media") // Radio button
+	if ((z[0].checked && /^@[A-Za-z0-9_]{4,15}$/.test(y)) // check twitter username
+	|| (z[1].checked && /^@[A-Za-z0-9-]{1,32}$/.test(y))) { // check tumblr username
+		a = en(encode_utf8(x)); len = [...a].length;
+		if ((z[0].checked && len <= 122) || (z[1].checked && len <= 440)) {
+			document.getElementById("en_output").value = y + " \u2A01" + a}
+		else {console.error("Input too large")}}
+	else {console.error("Username incorrect")}}
+
+function regExName(field, num){
+	return RegExp("(?:(@"+ field + " [\u{2A01}\u{272A}]))" +
+		"(?:([\u{3400}-\u{4DA9}\u{4E00}-\u{9FCF}\u{20000}-\u{2A6CF}" +
+		"\u{2A700}-\u{2B72F}\u{2B740}-\u{2B80F}\u{2B820}-\u{2CE9F}]{1," + num + "}))", "u")}
+
+regExTwitter = regExName("[A-Za-z0-9_]{4,15}", "122")
+regExTumblr = regExName("[A-Za-z0-9-]{1,32}", "440")
+
+function d (strip) {return int2byte(strip2int(strip))} // convert strip to bytes
+function de (strip) {return f([...strip], 55, d, "\x00")} // convert chi to bytes
+function decode () {
+	x = document.getElementById("de_input").value // Message to be decodec
+	y = document.getElementsByName("social_media") // Radio button
+	if (y[0].checked && regExTwitter.test(x)) {z = regExTwitter.exec(x)}
+	else if (y[1].checked && regExTumblr.test(x)) {z = regExTumblr.exec(x)}
+	else {console.error("String can't be decoded")}
+	z1 = z[1]; z2 = z[2]; // z1 is username, space and marker, z2 is message
+	document.getElementById("de_output").value = z1.slice(0,-1) + decode_utf8(de(z2))}
+
+function move () {document.getElementById("de_input").value = document.getElementById('en_output').value}
+
+</script>
+<head>
+<title>Chinese Translator</title>
+</head>
+<body>
+<b>Chinese translator (cipher not yet implemented)</b><br>
+<form>
+<input type="radio" name="social_media" value="twitter" checked> Twitter (max char 122)
+<input type="radio" name="social_media" value="tumblr"> Tumblr (max char 440)<br></form>
+<b>Encoder (Unicode safe)</b><br>
+<textarea id="en_input" cols="80" rows="6">
+Type your input here!</textarea><br>
+<input type="button" value="Translate!" onclick="encode();">
+<input type="text" id="username" size="16" value="@username_here">
+<input type="text" id="public_key" size="48" value="Type public key here"><br>
+<textarea id="en_output" cols="80" rows="6">
+Output comes here!</textarea><br>
+<input type="button" value="Transliterate!" onclick="move();"><br>
+<b>Decoder (Unicode safe)</b><br>
+<textarea id="de_input" cols="80" rows="6">
+Type your input here!</textarea><br>
+<input type="button" value="Translate!" onclick="decode();">
+<input type="text" id="private_key" size="48" value="Type private key here"><br>
+<textarea id="de_output" cols="80" rows="6">
+Output comes here!</textarea><br>
+</body>
+</html>
