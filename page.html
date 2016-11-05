@@ -12,7 +12,7 @@ Range of CJKV
 Codepoints   count  total       | char    Bits info   sets    B  Tumblr475  Twitter140
  340X- 4DAX   6576   6576  ExtA |    1  16.00000000  65536    2          0           0
  4E0X- 9FCX  20944  27520  CJKV |   28  456.2513910  79890   57         27           0
-2000X-2A6CX  42704  70244  ExtB |   55  896.2080895  80178  112         35          30
+2000X-2A6CX  42704  70224  ExtB |   55  896.2080895  80178  112         35          30
 2A70X-2B72X   4144  74368  ExtC |   82  1336.164788  80277  167         65          58
 2B74X-2B80X    208  74576  ExtD |  109  1776.121487  80326  222         39          31
 2B82X-2CE9X   5760  80336  ExtE |  136  2216.078185  80356  277         67           4
@@ -25,7 +25,7 @@ function int2char (integer) { // convert +ve int >= 0 to chi char
 	else if (integer < 70224) {integer -= 27520; integer += 0x20000} // ExtB
 	else if (integer < 74368) {integer -= 70224; integer += 0x2A700} // ExtC
 	else if (integer < 74576) {integer -= 74368; integer += 0x2B740} // ExtD
-	else if (integer < 80336) {integer -= 74576; integer += 0x2BB20} // ExtE
+	else if (integer < 80336) {integer -= 74576; integer += 0x2B820} // ExtE
 	else {console.error("Integer out of bounds")}
 	return String.fromCodePoint(integer)}
 
@@ -41,23 +41,23 @@ function char2int (character) { // convert chi char to +ve int >= 0
 	else if (0x20000 <= integer && integer < 0x2A6D0) {integer -= 0x20000; integer += 27520} // EXtB
 	else if (0x2A700 <= integer && integer < 0x2B730) {integer -= 0x2A700; integer += 70224} // ExtC
 	else if (0x2B740 <= integer && integer < 0x2B810) {integer -= 0x2B740; integer += 74368} // ExtD
-	else if (0x2B820 <= integer && integer < 0x2CEA0) {integer -= 0x2BB20; integer += 74576} // ExtE
-	else {console.error("Character out of range")}
+	else if (0x2B820 <= integer && integer < 0x2CEA0) {integer -= 0x2B820; integer += 74576} // ExtE
+	else {console.error("Character out of range:" + character)}
 	return integer}
 
-function intCheck (integer) {
+function intCheck (integer) { // check if a bigInt is negative or larger than 65536**56
 	console.assert(integer.lesser(bigInt(65536).pow(56)), "Integer out of range");
 	console.assert(integer.greaterOrEquals(0), "Integer out of range")}
 
 function mapJoin (array, func) {return array.map(func).join("")}
 
-function any2int (any, type, len, func, base) {
+function any2int (any, type, len, func, base) { // it takes in an array, length of array, and base
 	console.assert(typeof any[0] === "string", "Input not " + type);
 	console.assert(any.length <= len, "Input too long");
 	var array = any.map(func); var integer = bigInt(0); // create output var
 	for (var i = array.length - 1; i >= 0; i -= 1) { // loop through each char right to left
 		integer = integer.multiply(base).add(array[i])} // multiply and add
-	intCheck(integer); return integer}
+	intCheck(integer); return integer} // it outputs an integer based on the array
 
 function strip2int (strip) {return any2int([...strip], "string", 55, char2int, 80178)}
 function code1 (s) {return s.charCodeAt(0)} // convert char to code
@@ -74,10 +74,10 @@ function int2strip (integer) {return int2any(integer, 55, 80178, int2char)}
 function code2 (b) {return String.fromCodePoint(b)} // convert code to char
 function int2byte (integer) {return int2any(integer, 56, 65536, code2)}
 
-function f(array1, integer, func, char) {
-	var x = []; while (array1.length > 0) {
-		x.push(array1.splice(0, integer).join(""))}
-	return mapJoin(x, func).replace(RegExp(char + "+$"), "")}
+function f(array, integer, func, char) {
+	var x = []; while (array.length > 0) { // takes array of char
+		x.push(array.splice(0, integer).join(""))} // pack then in sets of integers
+	return mapJoin(x, func).replace(RegExp(char + "+$"), "")} // joining x and trimming extra characters
 
 function en_utf8 (s) {return unescape(encodeURIComponent(s))} // converts str to utf-8 escapes and ascii
 function en_lzma (s) {return LZString.compress(s)} // compress bytes into binary
