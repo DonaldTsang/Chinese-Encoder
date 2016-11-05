@@ -1,4 +1,4 @@
-OCTYPE html>
+<!DOCTYPE html>
 <html>
 <meta charset="utf-8" name="viewport" content="width=device-width">
 <script src="https://raw.githubusercontent.com/peterolson/BigInteger.js/master/BigInteger.min.js">//BigInt</script>
@@ -17,12 +17,6 @@ Codepoints   count  total       | char    Bits info   sets    B  Tumblr475  Twit
 2B74X-2B80X    208  74576  ExtD |  109  1776.121487  80326  222         39          31
 2B82X-2CE9X   5760  80336  ExtE |  136  2216.078185  80356  277         67           4
 */
-
-function en_utf8 (s) {return unescape(encodeURIComponent(s))} // converts str to utf-8 escapes and ascii
-function de_utf8 (s) {return decodeURIComponent(escape(s))} // converts utf-8 escapes and ascii to str
-
-function en_lzma (s) {return LZString.compress(s)} // compress bytes into binary
-function de_lzma (s) {return LZString.decompress(s)} // decompress binary to bytes
 
 function int2char (integer) { // convert +ve int >= 0 to chi char
 	console.assert(typeof integer === "number", "Input not integer");
@@ -85,13 +79,16 @@ function f(array1, integer, func, char) {
 		x.push(array1.splice(0, integer).join(""))}
 	return mapJoin(x, func).replace(RegExp(char + "+$"), "")}
 
+function en_utf8 (s) {return unescape(encodeURIComponent(s))} // converts str to utf-8 escapes and ascii
+function en_lzma (s) {return LZString.compress(s)} // compress bytes into binary
+
 function e (bytes) {return int2strip(byte2int(bytes))} // convert bytes to strip
 function en (bytes) {return f(bytes.split(""), 56, e, "\u3400")} // convert bytes to chi
 function encode () {
 	var x = document.getElementById("en_input").value; // Message to be encoded
 	var y = document.getElementById("username").value; // Username field
-	var z = document.getElementsByName("social_media") // Radio button for social media
-	var a = document.getElementsByName("text_encoding") // Radio button for text encoding
+	var z = document.getElementsByName("social_media"); // Radio button for social media
+	var a = document.getElementsByName("text_encoding"); // Radio button for text encoding
 	if ((z[0].checked && /^@[A-Za-z0-9_]{4,15}$/.test(y)) // check twitter username
 	|| (z[1].checked && /^@[A-Za-z0-9-]{1,32}$/.test(y))) { // check tumblr username
 		if (a[0].checked) {var a = en_utf8(x)} // change from utf16 to utf8
@@ -102,12 +99,15 @@ function encode () {
 	else {console.error("Username incorrect")}}
 
 function regExName(field, num){
-	return RegExp("(?:(@"+ field + " [\u{2A01}\u{272A}]))" +
+	return RegExp("(?:(@"+ field + " [\u{2A01}\u{272A}]))" + // name tag and symbol
 		"(?:([\u{3400}-\u{4DA9}\u{4E00}-\u{9FCF}\u{20000}-\u{2A6CF}" +
 		"\u{2A700}-\u{2B72F}\u{2B740}-\u{2B80F}\u{2B820}-\u{2CE9F}]{1," + num + "}))", "u")}
 
 regExTwitter = regExName("[A-Za-z0-9_]{4,15}", "122")
 regExTumblr = regExName("[A-Za-z0-9-]{1,32}", "440")
+
+function de_lzma (s) {return LZString.decompress(s)} // decompress binary to bytes
+function de_utf8 (s) {return decodeURIComponent(escape(s))} // converts utf-8 escapes and ascii to str
 
 function d (strip) {return int2byte(strip2int(strip))} // convert strip to bytes
 function de (strip) {return f([...strip], 55, d, "\u0000")} // convert chi to bytes
@@ -125,32 +125,24 @@ function decode () {
 function move () {document.getElementById("de_input").value = document.getElementById('en_output').value}
 
 </script>
-<head>
-<title>Chinese Translator</title>
-</head>
+<head><title>Chinese Translator</title></head>
 <body>
 <b>Chinese translator (cipher not yet implemented)</b><br>
-<form>
-<input type="radio" name="social_media" value="twitter" checked> Twitter (max char 122)
+<form><input type="radio" name="social_media" value="twitter" checked> Twitter (max char 122)
 <input type="radio" name="social_media" value="tumblr"> Tumblr (max char 440)<br></form>
-<form>
-<input type="radio" name="text_encoding" value="utf8" checked> UTF-8 (standardized)
+<form><input type="radio" name="text_encoding" value="utf8" checked> UTF-8 (standardized)
 <input type="radio" name="text_encoding" value="utf16"> UTF-16 (javascript)<br></form>
 <b>Encoder (Unicode safe)</b><br>
-<textarea id="en_input" cols="80" rows="6">
-Type your input here!</textarea><br>
+<textarea id="en_input" cols="80" rows="6">Type your input here!</textarea><br>
 <input type="button" value="Translate!" onclick="encode();">
 <input type="text" id="username" size="16" value="@username_here">
 <input type="text" id="public_key" size="48" value="Type public key here"><br>
-<textarea id="en_output" cols="80" rows="6">
-Output comes here!</textarea><br>
+<textarea id="en_output" cols="80" rows="6">Output comes here!</textarea><br>
 <input type="button" value="Transliterate!" onclick="move();"><br>
 <b>Decoder (Unicode safe)</b><br>
-<textarea id="de_input" cols="80" rows="6">
-Type your input here!</textarea><br>
+<textarea id="de_input" cols="80" rows="6">Type your input here!</textarea><br>
 <input type="button" value="Translate!" onclick="decode();">
 <input type="text" id="private_key" size="48" value="Type private key here"><br>
-<textarea id="de_output" cols="80" rows="6">
-Output comes here!</textarea><br>
+<textarea id="de_output" cols="80" rows="6">Output comes here!</textarea><br>
 </body>
 </html>
