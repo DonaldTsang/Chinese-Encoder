@@ -53,7 +53,7 @@ function mapJoin (array, func) {return array.map(func).join("")}
 
 function any2int (any, type, len, func, base) { // it takes in an array, length of array, and base
 	console.assert(typeof any[0] === "string", "Input not " + type);
-	console.assert(any.length <= len, "Input too long");
+	console.assert(any.length <= len, "Input too long:" + len);
 	var array = any.map(func); var integer = bigInt(0); // create output var
 	for (var i = array.length - 1; i >= 0; i -= 1) { // loop through each char right to left
 		integer = integer.multiply(base).add(array[i])} // multiply and add
