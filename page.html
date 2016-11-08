@@ -8,31 +8,72 @@
 <script>
 
 /*
+Twittter only has @ + 15char name + space + marker + 122 chi-char
+123 chi-char will be uised to represent 240(250)bytes, which is
+64byte symmetric-key + 16byte Initialize Vector + 160byte message
+With hangul expansion, it can include 253bytes of info
+
+Tumblr only has @ + 32char name + space + marker + 440 chi-char
+440 chi-char will be used to represent 896(896)bytes, which is
+64byte symmetric-key + 16byte Initialize Vector + 816byte message
+With hangul expansion, it can include 906bytes of info
+
 Range of CJKV
-Codepoints   count  total       | char    Bits info   sets    B  Tumblr475  Twitter140
- 340X- 4DAX   6576   6576  ExtA |    1  16.00000000  65536    2          0           0
- 4E0X- 9FCX  20944  27520  CJKV |   28  456.2513910  79890   57         27           0
-2000X-2A6CX  42704  70224  ExtB |   55  896.2080895  80178  112         35          30
-2A70X-2B72X   4144  74368  ExtC |   82  1336.164788  80277  167         65          58
-2B74X-2B80X    208  74576  ExtD |  109  1776.121487  80326  222         39          31
-2B82X-2CE9X   5760  80336  ExtE |  136  2216.078185  80356  277         67           4
+Codepoints   count  total      
+ 340X- 4DAX   6576   6576  Ext.A
+ 4E0X- 9FCX  20944  27520  CJKVI
+2000X-2A6CX  42704  70224  Ext.B
+2A70X-2B72X   4144  74368  Ext.C
+2B74X-2B80X    208  74576  Ext.D
+2B82X-2CE9X   5760  80336  Ext.E
+ AC0X- D79X  11168  91504  HNGL
+ 2F0X- 2FCX    208  91712  RDCL1
+ 2E8X- 2EEX    112  91824  RDCL2
+
+
+CJKVI only
+char    Bits info   sets    B  Tumblr475  Twitter140
+   1  16.00000000  65536    2          0           0
+  28  456.2513910  79890   57         27           0
+  55  896.2080895  80178  112         35          30
+  82  1336.164788  80277  167         65          58
+ 109  1776.121487  80326  222         39          31
+ 136  2216.078185  80356  277         67           4
+ 163  2656.034884  80377  332
+ 191  3112.286275  80305  389
+
+CJKVI + HNGL
+ char    Bits info   sets    B  Tumblr475  Twitter140
+    1  16.00000000  65536    2          0           0
+   17  280.2013073  90812   35
+   50  824.1214921  91406  103
+   67  1104.322799  91255  138
+   83  1368.041677  91529  171
+  117  1928.444292  91320  241
+  133  2192.163169  91483  274
+  183  3016.284661  91462  377
+  199  3280.003539  91559  410
+
+CJKV + HNGL + RDCL
+
 */
 
 function int2char (integer) { // convert +ve int >= 0 to chi char
 	console.assert(typeof integer === "number", "Input not integer");
-	if (0 <= integer && integer < 6576) {integer -= 0; integer += 0x3400} // ExtA
-	else if (integer < 27520) {integer -= 6576; integer += 0x4E00} // CJKV
-	else if (integer < 70224) {integer -= 27520; integer += 0x20000} // ExtB
-	else if (integer < 74368) {integer -= 70224; integer += 0x2A700} // ExtC
-	else if (integer < 74576) {integer -= 74368; integer += 0x2B740} // ExtD
-	else if (integer < 80336) {integer -= 74576; integer += 0x2B820} // ExtE
+	if (0 <= integer && integer < 6576) {integer -= 0; integer += 0x3400} // Ext.A
+	else if (integer < 27520) {integer -= 6576; integer += 0x4E00} // CJKVI
+	else if (integer < 70224) {integer -= 27520; integer += 0x20000} // Ext.B
+	else if (integer < 74368) {integer -= 70224; integer += 0x2A700} // Ext.C
+	else if (integer < 74576) {integer -= 74368; integer += 0x2B740} // Ext.D
+	else if (integer < 80336) {integer -= 74576; integer += 0x2B820} // Ext.E
+	// else if (integer < )
 	else {console.error("Integer out of bounds")}
 	return String.fromCodePoint(integer)}
 
 function char2int (character) { // convert chi char to +ve int >= 0
 	console.assert(typeof character === "string", "Input not string");
-	if (character.length === 1) {var integer = character.charCodeAt(0)} // CJKV and ExtA
-	else if (character.length === 2) { // ExtB, ExtC, ExtD and ExtE
+	if (character.length === 1) {var integer = character.charCodeAt(0)} // CJKVI and Ext.A
+	else if (character.length === 2) { // Ext.B, Ext.C, Ext.D and Ext.E
 		var H = character.charCodeAt(0); var L = character.charCodeAt(1);
 		var integer = (H - 0xD800) * 0x400 + L - 0xDC00 + 0x10000}
 	else {console.error("Error: input not character")}
@@ -125,7 +166,7 @@ function decode () {
 function move () {document.getElementById("de_input").value = document.getElementById('en_output').value}
 
 </script>
-<head><title>Chinese Translator</title></head>
+<head><title>Moonrunes Translator</title></head>
 <body>
 <b>Chinese translator (cipher not yet implemented)</b><br>
 <form><input type="radio" name="social_media" value="twitter" checked> Twitter (max char 122)
